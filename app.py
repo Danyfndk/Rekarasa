@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import datetime
+from datetime import datetime, date, timezone, timedelta
 from supabase import create_client, Client
 
 # ==========================================
@@ -47,7 +47,7 @@ st.markdown("""
         transition: all 0.2s ease;
     }
     div[role="radiogroup"]:hover { border-color: #0D9488; box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.08); }
-    .question-text { font-weight: 600; color: #1E293B; font-size: 1.05rem; margin-bottom: 10px; }
+    .question-text { font-weight: 700; color: #1E293B; font-size: 1.05rem; margin-bottom: 12px; line-height: 1.5; }
     
     .alias-box { 
         background: #FFFFFF; 
@@ -56,10 +56,9 @@ st.markdown("""
         border: 1px solid #E2E8F0;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
         text-align: center; 
-        max-width: 500px; 
-        margin: 10vh auto; 
+        max-width: 550px; 
+        margin: 8vh auto; 
     }
-    .alias-box h3 { color: #0F172A; font-weight: 800; font-size: 1.8rem; margin-bottom: 10px; }
     
     /* Insight Boxes */
     .insight-box {
@@ -101,17 +100,14 @@ st.markdown("""
         .hero-subtitle { font-size: 1rem; max-width: 100%; }
         h2 { font-size: 1.4rem; margin-bottom: 15px; }
         .alias-box { padding: 25px; margin: 5vh 15px; }
-        .alias-box h3 { font-size: 1.4rem; }
         
-        /* Make buttons full width on mobile for easy tapping */
         .stButton>button { width: 100%; margin-top: 10px; }
+        div[role="radiogroup"] { padding: 18px 20px; border-radius: 12px;}
+        .question-text { font-size: 1rem; }
         
-        /* Adjust paddings for mobile */
-        div[role="radiogroup"] { padding: 15px; }
         .insight-box, .insight-box-warning { padding: 1.2rem; font-size: 0.95rem; }
         .spacer-top { margin-top: 1.5rem; }
         
-        /* Stack metric cards vertically on small screens */
         [data-testid="stMetric"] { padding: 1.2rem !important; margin-bottom: 10px; }
         [data-testid="stMetricValue"] > div { font-size: 1.4rem !important; }
     }
@@ -119,8 +115,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. INISIALISASI DATABASE SUPABASE
+# 2. INISIALISASI DATABASE & WAKTU LOKAL (WIB)
 # ==========================================
+# Konfigurasi zona waktu patokan: UTC+7 (WIB)
+WIB = timezone(timedelta(hours=7))
+
 @st.cache_resource
 def init_connection():
     url = st.secrets["supabase"]["url"]
@@ -143,7 +142,7 @@ def upsert_jurnal(nama_alias, tgl_input, **kwargs):
     supabase.table("rekarasa_jurnal").upsert(data_baru).execute()
 
 # ==========================================
-# 3. SAAS LOGIN GATEWAY
+# 3. SAAS LOGIN GATEWAY (DYNAMIC EMPATHY)
 # ==========================================
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 
@@ -153,15 +152,45 @@ if 'user_alias' not in st.session_state:
 col_empty1, col_login_box, col_empty2 = st.columns([1, 2, 1])
 with col_login_box:
     if not st.session_state['user_alias']:
-        st.markdown("<div class='alias-box'><h3>Rekarasa 🌱</h3><p style='color:#64748B; margin-bottom:20px;'>Ruang personal untuk memetakan langkahmu.</p>", unsafe_allow_html=True)
-        input_nama = st.text_input("Alias", placeholder="Ketik namamu di sini (misal: Dany_88)", label_visibility="collapsed")
-        if st.button("Buka Jurnalku"):
+        # Ambil waktu WIB secara real-time
+        waktu_sekarang = datetime.now(WIB)
+        jam = waktu_sekarang.hour
+        
+        # Logika Dinamis Penyambut berdasarkan Psikologi Waktu
+        if 4 <= jam < 12:
+            sapaan = "Selamat Pagi."
+            kutipan = '"Luka adalah tempat di mana cahaya mulai memasukimu."<br>— Jalaluddin Rumi'
+            pengantar = "Mari mulai hari ini dengan pelan-pelan. Tidak perlu langsung utuh, satu langkah kecil saja sudah sangat berarti. Ketik namamu untuk masuk ke ruang amanmu."
+            warna_kutipan = "#D97706" # Warm Morning Orange
+        elif 12 <= jam < 18:
+            sapaan = "Selamat Siang."
+            kutipan = '"Di tengah musim dingin yang paling membeku, aku akhirnya menemukan bahwa di dalam diriku ada musim panas yang tak terkalahkan."<br>— Albert Camus'
+            pengantar = "Apapun yang sedang riuh dan melelahkan di luar sana, ruang ini akan selalu tenang untukmu. Mari letakkan sejenak lelahmu di sini."
+            warna_kutipan = "#0D9488" # Calm Teal
+        else:
+            sapaan = "Selamat Malam."
+            kutipan = '"Terkadang, keberanian paling besar di penghujung hari adalah sekadar berbisik: aku akan mencobanya lagi besok."<br>— Mary Anne Radmacher'
+            pengantar = "Bintang tak akan bisa bersinar tanpa kegelapan. Kamu sudah bertahan dengan sangat luar biasa hari ini. Masuklah, dan biarkan kepalamu beristirahat."
+            warna_kutipan = "#4338CA" # Deep Indigo Night
+        
+        # Tampilan UI Dinamis
+        html_gate = f"""
+        <div class='alias-box'>
+            <h3 style='color:#0F172A; font-weight:800; font-size:2rem; margin-bottom:5px;'>{sapaan}</h3>
+            <p style='font-size:1.05rem; font-weight:600; color:{warna_kutipan}; font-style:italic; margin-bottom:20px; line-height:1.5;'>{kutipan}</p>
+            <p style='color:#64748B; margin-bottom:25px; font-size:0.95rem; line-height:1.6;'>{pengantar}</p>
+        </div>
+        """
+        st.markdown(html_gate, unsafe_allow_html=True)
+        
+        # Input Login
+        input_nama = st.text_input("Alias", placeholder="Ketik nama alias rahasiamu di sini...", label_visibility="collapsed")
+        if st.button("Masuk ke Ruangku"):
             if input_nama:
                 st.session_state['user_alias'] = input_nama
                 st.rerun()
             else:
-                st.warning("Isi namamu dulu ya.")
-        st.markdown("</div>", unsafe_allow_html=True)
+                st.warning("Silakan isi namamu terlebih dahulu.")
         st.stop()
 
 nama_pengguna = st.session_state['user_alias']
@@ -177,7 +206,7 @@ def get_user_data(nama_alias):
     return pd.DataFrame(columns=["nama_pengguna", "tanggal", "skor_who5", "fase_hidup", "skor_pertumbuhan", "catatan", "jurnal"])
 
 df_jurnal = get_user_data(nama_pengguna)
-hari_ini = datetime.date.today()
+hari_ini = datetime.now(WIB).date() # Dikunci ke tanggal WIB
 
 fase_saat_ini = "Baru Mulai Melangkah"
 if not df_jurnal.empty:
@@ -218,19 +247,19 @@ opsi_skala = ["Hampir nggak pernah", "Jarang", "Kadang-kadang", "Sering", "Hampi
 
 with st.form("asesmen_who5"):
     st.markdown("<div class='question-text'>1. Aku ngerasa ceria dan mood lagi lumayan bagus.</div>", unsafe_allow_html=True)
-    q1 = st.radio("q1", opsi_skala, horizontal=True, label_visibility="collapsed", index=None)
+    q1 = st.radio("q1", opsi_skala, horizontal=False, label_visibility="collapsed", index=None)
     
     st.markdown("<div class='question-text'>2. Aku ngerasa lebih tenang dan rileks.</div>", unsafe_allow_html=True)
-    q2 = st.radio("q2", opsi_skala, horizontal=True, label_visibility="collapsed", index=None)
+    q2 = st.radio("q2", opsi_skala, horizontal=False, label_visibility="collapsed", index=None)
     
     st.markdown("<div class='question-text'>3. Aku ngerasa aktif dan mau gerak.</div>", unsafe_allow_html=True)
-    q3 = st.radio("q3", opsi_skala, horizontal=True, label_visibility="collapsed", index=None)
+    q3 = st.radio("q3", opsi_skala, horizontal=False, label_visibility="collapsed", index=None)
     
     st.markdown("<div class='question-text'>4. Pas bangun tidur, aku ngerasa seger (nggak ngerasa capek banget).</div>", unsafe_allow_html=True)
-    q4 = st.radio("q4", opsi_skala, horizontal=True, label_visibility="collapsed", index=None)
+    q4 = st.radio("q4", opsi_skala, horizontal=False, label_visibility="collapsed", index=None)
     
     st.markdown("<div class='question-text'>5. Keseharianku kerasa ada aja hal yang menarik atau seru.</div>", unsafe_allow_html=True)
-    q5 = st.radio("q5", opsi_skala, horizontal=True, label_visibility="collapsed", index=None)
+    q5 = st.radio("q5", opsi_skala, horizontal=False, label_visibility="collapsed", index=None)
     
     submit_asesmen = st.form_submit_button("Analisis Fase Hidupku")
 
@@ -296,13 +325,37 @@ with col_input:
 with col_graph:
     df_plot = df_jurnal.dropna(subset=['skor_pertumbuhan']).copy()
     if not df_plot.empty:
-        fig = px.line(df_plot, x="tanggal", y="skor_pertumbuhan", text="catatan", markers=True, height=340)
+        fig = px.line(df_plot, x="tanggal", y="skor_pertumbuhan", custom_data=['catatan'], markers=True, height=300)
+        
         if len(df_plot) == 1:
             s_date = df_plot['tanggal'].iloc[0]
             fig.update_xaxes(range=[s_date - pd.Timedelta(days=1), s_date + pd.Timedelta(days=1)])
             
-        fig.update_traces(line_color="#E2E8F0", line_width=4, line_shape='spline', marker=dict(size=14, color="#0D9488"), textposition="top center", textfont=dict(color="#475569", size=11, family='Plus Jakarta Sans'))
-        fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", yaxis=dict(range=[0.5, 5.5], tickvals=[1, 2, 3, 4, 5], ticktext=["Terhimpit", "Terbatas", "Menengah", "Meluas", "Bertumbuh"]), margin=dict(t=10, b=0, l=0, r=0))
+        fig.update_traces(
+            line_color="#0D9488", 
+            line_width=4, 
+            line_shape='spline', 
+            marker=dict(size=12, color="#0F172A", symbol="circle", line=dict(width=2, color="#FFFFFF")),
+            fill='tozeroy', 
+            fillcolor="rgba(13, 148, 136, 0.1)",
+            hovertemplate="<b>Skor:</b> %{y}/5<br><b>Aktivitas:</b> %{customdata[0]}<extra></extra>"
+        )
+        
+        fig.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", 
+            paper_bgcolor="rgba(0,0,0,0)", 
+            hovermode="x unified",
+            yaxis=dict(
+                range=[0, 5.5], 
+                tickvals=[1, 2, 3, 4, 5], 
+                ticktext=["(1) Terhimpit", "(2) Terbatas", "(3) Menengah", "(4) Meluas", "(5) Bertumbuh"],
+                title="", showgrid=True, gridcolor="#F1F5F9"
+            ),
+            xaxis=dict(
+                title="", showgrid=False, tickformat="%d %b"
+            ),
+            margin=dict(t=20, b=20, l=10, r=10)
+        )
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Visualisasinya bakal muncul kalau kamu udah masukin data pertumbuhan.")
