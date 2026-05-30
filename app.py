@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import datetime
+from supabase import create_client, Client
 
 # ==========================================
 # 1. KONFIGURASI HALAMAN & ADVANCED CSS
@@ -89,6 +90,7 @@ st.markdown("""
     /* Input & Forms */
     div[role="radiogroup"] { background: #ffffff; padding: 15px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 15px;}
     .question-text { font-weight: 600; color: #0F172A; font-size: 1rem; margin-bottom: 5px; }
+    .alias-box { background: #ffffff; padding: 25px; border-radius: 16px; border: 2px dashed #CBD5E1; text-align: center; max-width: 600px; margin: 40px auto; }
     
     .scroll-hint { text-align: center; color: #94A3B8; font-size: 0.9rem; font-weight: 600; margin-top: 15px; margin-bottom: 60px; text-transform: uppercase; letter-spacing: 1px; }
     .spacer-top { margin-top: 2rem; }
@@ -96,28 +98,87 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. STATE MANAGEMENT & SKEMA DATA (SUPABASE READY)
+# 2. INISIALISASI DATABASE SUPABASE
 # ==========================================
-if 'status_pertumbuhan' not in st.session_state:
-    st.session_state.status_pertumbuhan = "Baru Mulai Melangkah"
-if 'database_pertumbuhan' not in st.session_state:
-    st.session_state.database_pertumbuhan = pd.DataFrame(columns=[
-        "Tanggal", "Skor_WHO5", "Fase_Hidup", "Skor_Pertumbuhan", "Catatan", "Jurnal"
-    ])
+@st.cache_resource
+def init_connection():
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    return create_client(url, key)
+
+try:
+    supabase = init_connection()
+except Exception as e:
+    st.error("Gagal terhubung ke database. Pastikan pengaturan Secrets di Streamlit Cloud sudah benar.")
+    st.stop()
+
+# Fungsi Cerdas untuk Upsert Data (Menimpa tanpa menghapus kolom lain di hari yang sama)
+def upsert_jurnal(nama_alias, tgl_input, **kwargs):
+    tgl_str = str(tgl_input)
+    # 1. Tarik data lama kalau ada
+    response = supabase.table("rekarasa_jurnal").select("*").eq("nama_pengguna", nama_alias).eq("tanggal", tgl_str).execute()
+    data_baru = {"nama_pengguna": nama_alias, "tanggal": tgl_str}
+    
+    if response.data:
+        data_baru.update(response.data[0]) # Gabungkan dengan data lama
+        
+    data_baru.update(kwargs) # Timpa dengan input baru
+    
+    # 2. Kirim kembali ke Supabase
+    supabase.table("rekarasa_jurnal").upsert(data_baru).execute()
 
 # ==========================================
-# 3. HEADER PLATFORM
+# 3. SISTEM LOGIN ALIAS (MULTI-USER GATEWAY)
 # ==========================================
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
+
+col_logo, col_login = st.columns([1, 2])
+with col_logo:
+    st.markdown('<div class="hero-title" style="font-size:2.2rem;">Rekarasa 🌱</div>', unsafe_allow_html=True)
+
+with col_login:
+    nama_pengguna = st.text_input("🔑 Masukkan Nama/Alias Rahasia kamu buat buka jurnal:", placeholder="Contoh: Dany_88", label_visibility="collapsed")
+
+if not nama_pengguna:
+    st.markdown("<div class='alias-box'><h3>Halo, selamat datang.</h3><p style='color:#64748B;'>Ketik nama alias yang unik di kotak atas buat buka ruang personalmu ya. Selama aliasnya sama, data kamu bakal terus tersimpan aman.</p></div>", unsafe_allow_html=True)
+    st.stop() # Hentikan *render* halaman sampai alias diisi
+
+# --- TARIK DATA PENGGUNA DARI CLOUD ---
+@st.cache_data(ttl=2) # Cache 2 detik agar UX terasa sangat cepat namun tetap real-time
+def get_user_data(nama_alias):
+    resp = supabase.table("rekarasa_jurnal").select("*").eq("nama_pengguna", nama_alias).execute()
+    if resp.data:
+        df = pd.DataFrame(resp.data)
+        df['tanggal'] = pd.to_datetime(df['tanggal']).dt.date
+        return df.sort_values('tanggal')
+    return pd.DataFrame(columns=["nama_pengguna", "tanggal", "skor_who5", "fase_hidup", "skor_pertumbuhan", "catatan", "jurnal"])
+
+df_jurnal = get_user_data(nama_pengguna)
+hari_ini = datetime.date.today()
+
+# Set status fase saat ini berdasarkan data di cloud
+fase_saat_ini = "Baru Mulai Melangkah"
+if not df_jurnal.empty:
+    data_hari_ini = df_jurnal[df_jurnal['tanggal'] == hari_ini]
+    if not data_hari_ini.empty and pd.notna(data_hari_ini.iloc[0]['fase_hidup']):
+        fase_saat_ini = data_hari_ini.iloc[0]['fase_hidup']
+    else:
+        # Cari riwayat fase terakhir
+        riwayat_fase = df_jurnal.dropna(subset=['fase_hidup'])
+        if not riwayat_fase.empty:
+            fase_saat_ini = riwayat_fase.iloc[-1]['fase_hidup']
+
+# ==========================================
+# 4. HEADER PLATFORM
+# ==========================================
+st.markdown("---")
 col_title, col_metric = st.columns([2.5, 1.2])
 
 with col_title:
-    st.markdown('<div class="hero-title">Rekarasa <span style="color:#10B981">🌱</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-subtitle">Berdasarkan model <b>Growing Around Grief</b>. Nggak usah maksain rasa sedihnya cepet hilang. Kita cuma perlu pelan-pelan ngeluasin ruang hidupmu buat nampung itu semua.</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="hero-subtitle">Ruang personal milik: <b>{nama_pengguna}</b><br>Berdasarkan model <b>Growing Around Grief</b>. Nggak usah maksain rasa sedihnya cepet hilang. Kita cuma perlu pelan-pelan ngeluasin ruang hidupmu buat nampung itu semua.</div>', unsafe_allow_html=True)
 
 with col_metric:
-    metrik_status = st.empty()
-    metrik_status.metric(label="Fase Hidupmu Saat Ini", value=st.session_state.status_pertumbuhan)
+    st.metric(label="Fase Hidupmu Saat Ini", value=fase_saat_ini)
 
 st.markdown("<br><hr><div class='spacer-top'></div>", unsafe_allow_html=True)
 
@@ -159,21 +220,12 @@ if submit_asesmen:
         elif skor_total <= 20: fase_baru = "Ekspansi Kehidupan"
         else: fase_baru = "Kapasitas Hidup Luas"
         
-        st.session_state.status_pertumbuhan = fase_baru
-        metrik_status.metric(label="Fase Hidupmu Saat Ini", value=st.session_state.status_pertumbuhan)
+        # Kirim ke Cloud DB
+        upsert_jurnal(nama_pengguna, hari_ini, skor_who5=skor_total, fase_hidup=fase_baru)
         
-        hari_ini = pd.to_datetime(datetime.date.today())
-        df = st.session_state.database_pertumbuhan
-        if hari_ini in df['Tanggal'].values:
-            df.loc[df['Tanggal'] == hari_ini, ['Skor_WHO5', 'Fase_Hidup']] = [skor_total, fase_baru]
-        else:
-            new_row = pd.DataFrame({
-                "Tanggal": [hari_ini], "Skor_WHO5": [skor_total], "Fase_Hidup": [fase_baru],
-                "Skor_Pertumbuhan": [None], "Catatan": [None], "Jurnal": [None]
-            })
-            st.session_state.database_pertumbuhan = pd.concat([df, new_row]).sort_values('Tanggal')
-            
-        st.success(f"Dicatat ya! Berdasarkan analisis, fase kamu sekarang ada di: **{st.session_state.status_pertumbuhan}**.")
+        get_user_data.clear() # Bersihkan cache
+        st.success(f"Tersimpan di Cloud! Berdasarkan analisis, fase kamu sekarang ada di: **{fase_baru}**.")
+        st.rerun() # Refresh halaman secara instan
     else:
         st.warning("Eits, sepertinya ada pertanyaan yang belum keisi. Dilengkapin dulu yuk!")
 
@@ -191,10 +243,9 @@ st.write("Grafik ini bukan buat ngukur kesedihan, tapi ngeliat seberapa jauh **R
 
 col_input, col_graph = st.columns([1, 2], gap="large")
 with col_input:
-    tgl = st.date_input("Pilih Tanggal (Bisa ubah tanggal buat cek mundur)", datetime.date.today())
+    tgl_input = st.date_input("Pilih Tanggal (Bisa ubah tanggal buat cek mundur)", hari_ini)
     skala_likert = st.radio("Seberapa luas ruang hidupmu hari ini?", ["😢 Terhimpit", "🙁 Terbatas", "😐 Menengah", "🙂 Meluas", "😄 Bertumbuh"], horizontal=True, index=None)
     
-    # FIX BUG TYPEERROR: Mengganti parameter index=0 menjadi default
     catatan_singkat = st.pills("Ada aktivitas baru yang kamu lakuin?", [
         "Cuma Bertahan", "Rawat Diri", "Ngulik Hobi", "Ketemu Teman", "Fokus Kerja", "Mulai Berdamai"
     ], default="Cuma Bertahan")
@@ -202,35 +253,28 @@ with col_input:
     if st.button("Simpan Jejak Hari Ini"):
         if skala_likert:
             skor_final = {"😢 Terhimpit": 1, "🙁 Terbatas": 2, "😐 Menengah": 3, "🙂 Meluas": 4, "😄 Bertumbuh": 5}[skala_likert]
-            tgl_dt = pd.to_datetime(tgl)
-            df = st.session_state.database_pertumbuhan
             
-            if tgl_dt in df['Tanggal'].values:
-                df.loc[df['Tanggal'] == tgl_dt, ['Skor_Pertumbuhan', 'Catatan']] = [skor_final, catatan_singkat]
-            else:
-                new_row = pd.DataFrame({
-                    "Tanggal": [tgl_dt], "Skor_WHO5": [None], "Fase_Hidup": [None],
-                    "Skor_Pertumbuhan": [skor_final], "Catatan": [catatan_singkat], "Jurnal": [None]
-                })
-                st.session_state.database_pertumbuhan = pd.concat([df, new_row]).drop_duplicates(subset=['Tanggal'], keep='last').sort_values('Tanggal')
-                
-            st.success("Jejaknya udah kesimpan aman!")
+            upsert_jurnal(nama_pengguna, tgl_input, skor_pertumbuhan=skor_final, catatan=catatan_singkat)
+            
+            get_user_data.clear() # Bersihkan cache
+            st.success("Jejaknya udah kesimpan aman di Cloud!")
+            st.rerun()
         else:
             st.warning("Pilih skala pertumbuhannya dulu ya.")
 
 with col_graph:
-    df_plot = st.session_state.database_pertumbuhan.dropna(subset=['Skor_Pertumbuhan'])
+    df_plot = df_jurnal.dropna(subset=['skor_pertumbuhan']).copy()
     if not df_plot.empty:
-        fig = px.line(df_plot, x="Tanggal", y="Skor_Pertumbuhan", text="Catatan", markers=True, height=340)
+        fig = px.line(df_plot, x="tanggal", y="skor_pertumbuhan", text="catatan", markers=True, height=340)
         if len(df_plot) == 1:
-            s_date = df_plot['Tanggal'].iloc[0]
+            s_date = df_plot['tanggal'].iloc[0]
             fig.update_xaxes(range=[s_date - pd.Timedelta(days=1), s_date + pd.Timedelta(days=1)])
             
         fig.update_traces(line_color="#E2E8F0", line_width=3, line_shape='spline', marker=dict(size=14, color="#10B981"), textposition="top center", textfont=dict(color="#475569", size=11, family='Inter'))
         fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", yaxis=dict(range=[0.5, 5.5], tickvals=[1, 2, 3, 4, 5], ticktext=["Terhimpit", "Terbatas", "Menengah", "Meluas", "Bertumbuh"]), margin=dict(t=10, b=0, l=0, r=0))
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("Visualisasinya bakal muncul kalau kamu udah masukin data hari ini.")
+        st.info("Visualisasinya bakal muncul kalau kamu udah masukin data pertumbuhan.")
 
 # --- PEMBATAS VISUAL 2 ---
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
@@ -242,18 +286,16 @@ st.markdown("<div class='scroll-hint'>↓ Tarik napas sebentar, yuk intip kesimp
 # BLOK 3: PANEL KESIMPULAN & SARAN
 # ==========================================
 st.markdown("<h2>3. Insight & Teman Melangkah</h2>", unsafe_allow_html=True)
-stat_p = st.session_state.status_pertumbuhan
-df_valid = st.session_state.database_pertumbuhan.dropna(subset=['Skor_Pertumbuhan'])
 
-if stat_p == "Baru Mulai Melangkah" or df_valid.empty:
+if fase_saat_ini == "Baru Mulai Melangkah" or df_plot.empty:
     st.info("Isi dulu asesmen di Blok 1 dan simpan jejak di Blok 2 ya, biar sistem bisa buatin rangkuman dan langkah kecil yang pas buat kondisi kamu sekarang.")
 else:
     col_summary_data, col_summary_insight = st.columns([1.2, 2.3], gap="large")
     
     with col_summary_data:
         st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:15px;'>📋 Rekap Perjalananmu</p>", unsafe_allow_html=True)
-        total_hari = len(df_valid)
-        avg_score = df_valid['Skor_Pertumbuhan'].mean()
+        total_hari = len(df_plot)
+        avg_score = df_plot['skor_pertumbuhan'].mean()
         
         st.metric(label="Udah Bertahan Selama", value=f"{total_hari} Hari")
         st.write("")
@@ -263,21 +305,21 @@ else:
         st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:15px;'>💡 Catatan Buat Kamu</p>", unsafe_allow_html=True)
         
         if avg_score < 3.0:
-            st.markdown(f"<div class='insight-box-warning'><b>Hasil Analisis:</b> Fase kamu secara rata-rata ada di <b>{stat_p}</b>. Wajar banget kalau lagi ngerasa mentok atau berat. Mengacu ke konsep <i>Self-Compassion</i> Dr. Kristin Neff, ini sama sekali bukan kegagalan. Tubuh dan pikiranmu cuma lagi ngasih alarm buat minta istirahat ekstra. Nggak perlu nyalahin diri sendiri, <i>take your time</i> aja.</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='insight-box-warning'><b>Hasil Analisis:</b> Fase kamu secara rata-rata ada di <b>{fase_saat_ini}</b>. Wajar banget kalau lagi ngerasa mentok atau berat. Mengacu ke konsep <i>Self-Compassion</i> Dr. Kristin Neff, ini sama sekali bukan kegagalan. Tubuh dan pikiranmu cuma lagi ngasih alarm buat minta istirahat ekstra. Nggak perlu nyalahin diri sendiri, <i>take your time</i> aja.</div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='insight-box'><b>Hasil Analisis:</b> Keren banget, kapasitas hidupmu lagi lumayan stabil dan ada di <b>{stat_p}</b>. Mengacu ke teori Dr. Lois Tonkin, kamu udah ngebuktiin kalau kamu pelan-pelan bisa ngebangun sirkuit memori baru yang lebih luas dari rasa sedih itu. Lanjutin terus dengan ritme yang paling bikin kamu nyaman ya.</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='insight-box'><b>Hasil Analisis:</b> Keren banget, kapasitas hidupmu lagi lumayan stabil dan ada di <b>{fase_saat_ini}</b>. Mengacu ke teori Dr. Lois Tonkin, kamu udah ngebuktiin kalau kamu pelan-pelan bisa ngebangun sirkuit memori baru yang lebih luas dari rasa sedih itu. Lanjutin terus dengan ritme yang paling bikin kamu nyaman ya.</div>", unsafe_allow_html=True)
         
         st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-top:20px; margin-bottom:10px;'>🎯 Langkah Kecil yang Bisa Dicoba Hari Ini</p>", unsafe_allow_html=True)
         
-        if "Fokus" in stat_p: 
+        if "Fokus" in fase_saat_ini: 
             st.checkbox("🌬️ Latihan **Box Breathing** yuk: Tarik napas 4 detik, tahan 4 detik, buang perlahan 4 detik. Lakuin 2 menit aja buat nenangin deg-degan.")
             st.checkbox("💧 Ambil segelas air putih sekarang dan minum pelan-pelan sampai habis. Bantu tubuhmu tetep seger.")
             st.checkbox("🛡️ Nggak apa-apa banget kalau hari ini ngerasa nggak produktif. Kasih izin buat dirimu istirahat, kamu udah berusaha keras kok.")
-        elif "Adaptasi" in stat_p: 
+        elif "Adaptasi" in fase_saat_ini: 
             st.checkbox("☀️ Coba berdiri di teras atau dekat jendela pas pagi, kena sinar matahari 10 menit aja biar hormon bahagia (*serotonin*) naik.")
             st.checkbox("🎯 Beresin satu hal super gampang hari ini (misal: cuma ngerapiin meja kerja atau bersihin layar tablet).")
             st.checkbox("✍️ Kalau masih ada yang ganjel, keluarin aja semuanya di 'Ruang Tumpah Rasa' di bawah.")
-        elif "Seimbang" in stat_p: 
+        elif "Seimbang" in fase_saat_ini: 
             st.checkbox("🧩 Pakai teknik **5-4-3-2-1** buat narik kesadaran: Sebutkan 5 hal yang bisa dilihat, 4 yang disentuh, 3 yang didengar, 2 yang dicium baunya, dan 1 hal baik tentangmu.")
             st.checkbox("🚫 Kurangin kepo atau *scroll* sosmed yang bisa mancing pikiran lama buat sisa hari ini.")
             st.checkbox("🏃 Jalan kaki santai 15 menit, entah di komplek atau keliling kantor, biar stres di otot berkurang.")
@@ -304,18 +346,9 @@ with st.form("ruang_tumpah_rasa_form", clear_on_submit=True):
 
 if submit_cerita:
     if j_text: 
-        hari_ini = pd.to_datetime(datetime.date.today())
-        df = st.session_state.database_pertumbuhan
-        if hari_ini in df['Tanggal'].values:
-            df.loc[df['Tanggal'] == hari_ini, 'Jurnal'] = j_text
-        else:
-            new_row = pd.DataFrame({
-                "Tanggal": [hari_ini], "Skor_WHO5": [None], "Fase_Hidup": [None],
-                "Skor_Pertumbuhan": [None], "Catatan": [None], "Jurnal": [j_text]
-            })
-            st.session_state.database_pertumbuhan = pd.concat([df, new_row]).sort_values('Tanggal')
-            
-        st.success("Tumpahan rasamu udah diterima dengan aman. Secara ilmiah, mindahin uneg-uneg lewat tulisan bikin otak logis kamu kerja lebih enteng.")
+        upsert_jurnal(nama_pengguna, hari_ini, jurnal=j_text)
+        get_user_data.clear() # Bersihkan cache
+        st.success("Tumpahan rasamu udah diterima dan dikunci di Cloud. Secara ilmiah, mindahin uneg-uneg lewat tulisan bikin otak logis kamu kerja lebih enteng.")
         st.balloons()
 
 # ==========================================
