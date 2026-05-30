@@ -101,7 +101,6 @@ st.markdown("""
 if 'status_pertumbuhan' not in st.session_state:
     st.session_state.status_pertumbuhan = "Baru Mulai Melangkah"
 if 'database_pertumbuhan' not in st.session_state:
-    # IMPROVEMENT 3: Restrukturisasi skema tabel gabungan agar siap diekspor ke Supabase per baris harian
     st.session_state.database_pertumbuhan = pd.DataFrame(columns=[
         "Tanggal", "Skor_WHO5", "Fase_Hidup", "Skor_Pertumbuhan", "Catatan", "Jurnal"
     ])
@@ -163,7 +162,6 @@ if submit_asesmen:
         st.session_state.status_pertumbuhan = fase_baru
         metrik_status.metric(label="Fase Hidupmu Saat Ini", value=st.session_state.status_pertumbuhan)
         
-        # IMPROVEMENT 3: Integrasi data Blok 1 ke skema database tabel utama (Upsert)
         hari_ini = pd.to_datetime(datetime.date.today())
         df = st.session_state.database_pertumbuhan
         if hari_ini in df['Tanggal'].values:
@@ -196,10 +194,10 @@ with col_input:
     tgl = st.date_input("Pilih Tanggal (Bisa ubah tanggal buat cek mundur)", datetime.date.today())
     skala_likert = st.radio("Seberapa luas ruang hidupmu hari ini?", ["😢 Terhimpit", "🙁 Terbatas", "😐 Menengah", "🙂 Meluas", "😄 Bertumbuh"], horizontal=True, index=None)
     
-    # IMPROVEMENT 1: Mengubah selectbox menjadi st.pills agar mobile & touch-friendly di tablet
+    # FIX BUG TYPEERROR: Mengganti parameter index=0 menjadi default
     catatan_singkat = st.pills("Ada aktivitas baru yang kamu lakuin?", [
         "Cuma Bertahan", "Rawat Diri", "Ngulik Hobi", "Ketemu Teman", "Fokus Kerja", "Mulai Berdamai"
-    ], index=0)
+    ], default="Cuma Bertahan")
     
     if st.button("Simpan Jejak Hari Ini"):
         if skala_likert:
@@ -207,7 +205,6 @@ with col_input:
             tgl_dt = pd.to_datetime(tgl)
             df = st.session_state.database_pertumbuhan
             
-            # IMPROVEMENT 3: Integrasi data Blok 2 ke skema database dengan keep='last'
             if tgl_dt in df['Tanggal'].values:
                 df.loc[df['Tanggal'] == tgl_dt, ['Skor_Pertumbuhan', 'Catatan']] = [skor_final, catatan_singkat]
             else:
@@ -222,7 +219,6 @@ with col_input:
             st.warning("Pilih skala pertumbuhannya dulu ya.")
 
 with col_graph:
-    # Filter data valid agar grafik tidak merender baris kosong dari Blok 1/Blok 4
     df_plot = st.session_state.database_pertumbuhan.dropna(subset=['Skor_Pertumbuhan'])
     if not df_plot.empty:
         fig = px.line(df_plot, x="Tanggal", y="Skor_Pertumbuhan", text="Catatan", markers=True, height=340)
@@ -302,14 +298,12 @@ st.markdown("<div class='scroll-hint'>↓ Tumpahin semuanya di bawah, biar kepal
 st.markdown("<h2>4. Ruang Tumpah Rasa</h2>", unsafe_allow_html=True)
 st.write("Nggak usah mikirin ejaan atau tanda baca. Tumpahin aja semua yang lagi menuhin kepala kamu di sini, tanpa perlu disensor.")
 
-# IMPROVEMENT 2: Menggunakan st.form dengan clear_on_submit=True untuk sensasi psikologis melepaskan beban pikiran
 with st.form("ruang_tumpah_rasa_form", clear_on_submit=True):
     j_text = st.text_area("Tumpahkan di sini...", height=150, label_visibility="collapsed", placeholder="Ketik apa aja di sini, bebas...")
     submit_cerita = st.form_submit_button("Udah, Lumayan Lega")
 
 if submit_cerita:
     if j_text: 
-        # IMPROVEMENT 3: Integrasi data teks jurnal Blok 4 ke skema database tabel utama (Upsert)
         hari_ini = pd.to_datetime(datetime.date.today())
         df = st.session_state.database_pertumbuhan
         if hari_ini in df['Tanggal'].values:
