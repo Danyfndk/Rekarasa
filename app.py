@@ -4,10 +4,10 @@ import plotly.express as px
 import datetime
 
 # ==========================================
-# 1. KONFIGURASI HALAMAN & ADVANCED CSS (SaaS Polish)
+# 1. KONFIGURASI HALAMAN & ADVANCED CSS
 # ==========================================
 st.set_page_config(
-    page_title="Rekarasa | Growing Around Grief", 
+    page_title="Rekarasa | Teman Tumbuhmu", 
     page_icon="🌱", 
     layout="wide"
 )
@@ -46,7 +46,7 @@ st.markdown("""
         border-top: 4px solid #10B981;
     }
 
-    /* On-Screen Report Box Styles (Tidak Menghakimi) */
+    /* On-Screen Report Box Styles */
     .insight-box {
         background-color: #F0FDF4;
         border-left: 4px solid #16A34A;
@@ -93,10 +93,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. STATE MANAGEMENT (LOGIKA LOIS TONKIN)
+# 2. STATE MANAGEMENT 
 # ==========================================
 if 'status_pertumbuhan' not in st.session_state:
-    st.session_state.status_pertumbuhan = "Memulai Perjalanan"
+    st.session_state.status_pertumbuhan = "Baru Mulai Melangkah"
 if 'database_pertumbuhan' not in st.session_state:
     st.session_state.database_pertumbuhan = pd.DataFrame(columns=["Tanggal", "Skor Pertumbuhan", "Catatan"])
 
@@ -108,63 +108,68 @@ col_title, col_metric = st.columns([2.5, 1.2])
 
 with col_title:
     st.markdown('<div class="hero-title">Rekarasa <span style="color:#10B981">🌱</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-subtitle">Berdasarkan model <b>Growing Around Grief</b>. Kita tidak fokus mengecilkan duka, namun memperluas kapasitas hidup untuk menampungnya.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-subtitle">Berdasarkan model <b>Growing Around Grief</b>. Kamu nggak perlu memaksa rasa sedih cepat hilang. Kita cuma perlu pelan-pelan meluaskan ruang hidupmu untuk menampungnya.</div>', unsafe_allow_html=True)
 
 with col_metric:
     metrik_status = st.empty()
-    metrik_status.metric(label="Kapasitas Hidup Saat Ini", value=st.session_state.status_pertumbuhan)
+    metrik_status.metric(label="Fase Hidupmu Saat Ini", value=st.session_state.status_pertumbuhan)
 
 st.markdown("<br><hr><div class='spacer-top'></div>", unsafe_allow_html=True)
 
 
 # ==========================================
-# BLOK 1: APA RASA BERUKIR HARI INI? (Asesmen)
+# BLOK 1: ASESMEN
 # ==========================================
-st.markdown("<h2>1. Apa Rasa Berukir Hari Ini?</h2>", unsafe_allow_html=True)
-pilihan_kondisi = st.radio("Seberapa besar hidupmu mengitari duka hari ini?", [
-    "Duka terasa mengambil seluruh ruang hidup saya. Sulit untuk memikirkan hal lain.",
-    "Hidup saya masih didominasi duka, tapi saya mulai bisa melakukan beberapa tugas kecil.",
-    "Ada keseimbangan. Saya merasa sedih, tapi saya juga mulai bisa merancang rencana masa depan.",
-    "Saya sudah mulai aktif melakukan hal-hal baru, meski sesekali rasa duka tetap muncul menyapa.",
-    "Hidup saya sudah tumbuh jauh lebih besar. Rasa duka itu tetap ada, tapi ia hanya menjadi bagian kecil dari hidup saya."
+st.markdown("<h2>1. Gimana Rasanya Hari Ini?</h2>", unsafe_allow_html=True)
+
+pilihan_kondisi = st.radio("Coba petakan pelan-pelan, seberapa besar rasa sedih itu ambil kendali hari ini? Nggak ada jawaban yang salah kok.", [
+    "Rasanya penuh banget, susah buat mikirin hal lain.",
+    "Masih lumayan berat, tapi udah mulai bisa ngerjain satu-dua hal kecil.",
+    "Mulai seimbang. Kadang sedih, tapi udah bisa mikirin rencana ke depan.",
+    "Udah lumayan aktif nyoba hal baru, walaupun sedihnya kadang masih mampir.",
+    "Ruang hidup kerasa jauh lebih luas. Sedihnya masih ada, tapi cuma di satu sudut kecil aja."
 ], index=None, label_visibility="collapsed")
 
-if st.button("Catat Kapasitas Hidupku"):
+if st.button("Simpan Rasaku Hari Ini"):
     if pilihan_kondisi:
         mapping = {
-            "Duka terasa mengambil seluruh ruang hidup saya. Sulit untuk memikirkan hal lain.": "Fokus Bertahan Diri",
-            "Hidup saya masih didominasi duka, tapi saya mulai bisa melakukan beberapa tugas kecil.": "Mulai Beradaptasi",
-            "Ada keseimbangan. Saya merasa sedih, tapi saya juga mulai bisa merancang rencana masa depan.": "Pertumbuhan Seimbang",
-            "Saya sudah mulai aktif melakukan hal-hal baru, meski sesekali rasa duka tetap muncul menyapa.": "Ekspansi Kehidupan",
-            "Hidup saya sudah tumbuh jauh lebih besar. Rasa duka itu tetap ada, tapi ia hanya menjadi bagian kecil dari hidup saya.": "Kapasitas Hidup Luas"
+            "Rasanya penuh banget, susah buat mikirin hal lain.": "Fokus Bertahan Diri",
+            "Masih lumayan berat, tapi udah mulai bisa ngerjain satu-dua hal kecil.": "Mulai Beradaptasi",
+            "Mulai seimbang. Kadang sedih, tapi udah bisa mikirin rencana ke depan.": "Pertumbuhan Seimbang",
+            "Udah lumayan aktif nyoba hal baru, walaupun sedihnya kadang masih mampir.": "Ekspansi Kehidupan",
+            "Ruang hidup kerasa jauh lebih luas. Sedihnya masih ada, tapi cuma di satu sudut kecil aja.": "Kapasitas Hidup Luas"
         }
         st.session_state.status_pertumbuhan = mapping[pilihan_kondisi]
-        metrik_status.metric(label="Kapasitas Hidup Saat Ini", value=st.session_state.status_pertumbuhan)
-        st.success(f"Status tercatat: **{st.session_state.status_pertumbuhan}**.")
+        metrik_status.metric(label="Fase Hidupmu Saat Ini", value=st.session_state.status_pertumbuhan)
+        st.success(f"Dicatat ya. Fase kamu sekarang: **{st.session_state.status_pertumbuhan}**.")
+    else:
+        st.warning("Pilih salah satu kondisi di atas dulu ya, biar sistem bisa bantu arahin kamu.")
 
 # --- PEMBATAS VISUAL 1 ---
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 st.image("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&h=250&q=80", use_container_width=True)
-st.markdown("<div class='scroll-hint'>↓ Periksa visualisasi jejak langkahmu di bawah ini</div>", unsafe_allow_html=True)
+st.markdown("<div class='scroll-hint'>↓ Cek seberapa jauh kamu udah jalan di bawah ini</div>", unsafe_allow_html=True)
 
 
 # ==========================================
-# BLOK 2: JEJAK LANGKAH (Progress Dashboard)
+# BLOK 2: JEJAK LANGKAH 
 # ==========================================
 st.markdown("<h2>2. Jejak Langkahmu</h2>", unsafe_allow_html=True)
-st.write("Grafik ini melacak seberapa besar **Kapasitas Hidup** yang berhasil kamu bangun setiap harinya.")
+st.write("Grafik ini bukan buat ngukur kesedihan, tapi ngeliat seberapa jauh **Ruang Hidupmu** udah bertumbuh dari hari ke hari.")
 
 col_input, col_graph = st.columns([1, 2], gap="large")
 with col_input:
-    tgl = st.date_input("Tanggal", datetime.date.today())
-    skala_likert = st.radio("Skala Pertumbuhan", ["😢 Terhimpit", "🙁 Terbatas", "😐 Menengah", "🙂 Meluas", "😄 Bertumbuh"], horizontal=True, index=None)
-    catatan_singkat = st.selectbox("Aktivitas baru:", ["Rawat Diri", "Mulai Hobi", "Bertemu Teman", "Kerja Fokus", "Hanya Bertahan", "Mulai Berdamai"])
+    tgl = st.date_input("Pilih Tanggal", datetime.date.today())
+    skala_likert = st.radio("Seberapa luas ruang hidupmu hari ini?", ["😢 Terhimpit", "🙁 Terbatas", "😐 Menengah", "🙂 Meluas", "😄 Bertumbuh"], horizontal=True, index=None)
+    catatan_singkat = st.selectbox("Ada hal baru yang kamu lakuin?", ["Rawat Diri", "Mulai Hobi", "Bertemu Teman", "Kerja Fokus", "Hanya Bertahan", "Mulai Berdamai"])
     if st.button("Simpan Jejak"):
         if skala_likert:
             skor_final = {"😢 Terhimpit": 1, "🙁 Terbatas": 2, "😐 Menengah": 3, "🙂 Meluas": 4, "😄 Bertumbuh": 5}[skala_likert]
             new_data = pd.DataFrame({"Tanggal": [pd.to_datetime(tgl)], "Skor Pertumbuhan": [skor_final], "Catatan": [catatan_singkat]})
             st.session_state.database_pertumbuhan = pd.concat([st.session_state.database_pertumbuhan, new_data]).drop_duplicates('Tanggal').sort_values('Tanggal')
-            st.success("Jejak pertumbuhan berhasil disimpan!")
+            st.success("Jejaknya udah kesimpan aman!")
+        else:
+            st.warning("Pilih skala pertumbuhannya dulu ya.")
 
 with col_graph:
     if not st.session_state.database_pertumbuhan.empty:
@@ -173,99 +178,96 @@ with col_graph:
         fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", yaxis=dict(range=[0.5, 5.5], tickvals=[1, 2, 3, 4, 5], ticktext=["Terhimpit", "Terbatas", "Menengah", "Meluas", "Bertumbuh"]), margin=dict(t=10, b=0, l=0, r=0))
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("Dasbor pertumbuhan akan muncul setelah Anda mencatat data hari ini.")
+        st.info("Visualisasinya bakal muncul kalau kamu udah masukin data hari ini.")
 
 # --- PEMBATAS VISUAL 2 ---
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 st.image("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=1200&h=250&q=80", use_container_width=True)
-st.markdown("<div class='scroll-hint'>↓ Lihat kesimpulan panel laporan on-screen di bawah ini</div>", unsafe_allow_html=True)
+st.markdown("<div class='scroll-hint'>↓ Tarik napas sebentar, yuk intip kesimpulan buat kamu hari ini</div>", unsafe_allow_html=True)
 
 
 # ==========================================
-# BLOK 3: PANEL KESIMPULAN, HASIL & SARAN (ON-SCREEN REPORT)
+# BLOK 3: PANEL KESIMPULAN & SARAN
 # ==========================================
-st.markdown("<h2>3. Panel Kesimpulan, Hasil & Saran</h2>", unsafe_allow_html=True)
+st.markdown("<h2>3. Insight & Teman Melangkah</h2>", unsafe_allow_html=True)
 stat_p = st.session_state.status_pertumbuhan
 
-if stat_p == "Memulai Perjalanan" or st.session_state.database_pertumbuhan.empty:
-    st.info("Silakan isi bagian Asesmen (Blok 1) dan simpan minimal satu Jejak Langkah (Blok 2) untuk merumuskan panel kesimpulan secara otomatis di sini.")
+if stat_p == "Baru Mulai Melangkah" or st.session_state.database_pertumbuhan.empty:
+    st.info("Isi dulu bagian 1 dan 2 di atas ya, biar sistem bisa buatin rangkuman dan langkah kecil yang pas buat kondisi kamu sekarang.")
 else:
-    # Memisahkan layout menjadi komparasi data eksekutif & refleksi sains
     col_summary_data, col_summary_insight = st.columns([1.2, 2.3], gap="large")
     
     with col_summary_data:
-        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:15px;'>📋 Kesimpulan Metrik Data</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:15px;'>📋 Rekap Perjalananmu</p>", unsafe_allow_html=True)
         total_hari = len(st.session_state.database_pertumbuhan)
         avg_score = st.session_state.database_pertumbuhan['Skor Pertumbuhan'].mean()
         
-        st.metric(label="Total Hari yang Berhasil Dilalui", value=f"{total_hari} Hari")
+        st.metric(label="Udah Bertahan Selama", value=f"{total_hari} Hari")
         st.write("")
         st.metric(label="Indeks Rata-rata Kapasitas", value=f"{avg_score:.1f} / 5.0")
         
     with col_summary_insight:
-        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:15px;'>💡 Hasil Analisis Welas Asih</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:15px;'>💡 Catatan Buat Kamu</p>", unsafe_allow_html=True)
         
-        # HASIL: Sintesis otomatis berbasis rata-rata metrik (Teori Kristin Neff)
         if avg_score < 3:
-            st.markdown(f"<div class='insight-box-warning'><b>Hasil Refleksi:</b> Saat ini kapasitas ruang hidupmu berada di fase <b>{stat_p}</b>. Berdasarkan prinsip <i>Self-Compassion</i> Dr. Kristin Neff, merasa terhimpit atau stagnan bukanlah bentuk kegagalan. Ini adalah indikator biologis yang valid bahwa tubuhmu sedang memerlukan proteksi, penerimaan utuh, dan istirahat kognitif yang mendalam tanpa penghakiman.</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='insight-box-warning'><b>Hasil Analisis:</b> Fase kamu sekarang ada di <b>{stat_p}</b>. Wajar banget kalau lagi ngerasa mentok atau berat. Berdasarkan konsep <i>Self-Compassion</i> Dr. Kristin Neff, ini sama sekali bukan kegagalan. Tubuh dan pikiranmu cuma lagi kasih sinyal buat minta istirahat ekstra tanpa perlu dihakimi. <i>Take your time</i>, pelan-pelan aja.</div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='insight-box'><b>Hasil Refleksi:</b> Analisis data mendeteksi kestabilan yang baik di fase <b>{stat_p}</b>. Mengacu pada paradigma Dr. Lois Tonkin, kamu telah berhasil mengukir sirkuit memori baru untuk memperluas ruang hidupmu mengitari memori duka tersebut. Teruskan dengan ritme yang paling nyaman bagi jiwamu.</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='insight-box'><b>Hasil Analisis:</b> Keren banget, kapasitas hidupmu lagi lumayan stabil di fase <b>{stat_p}</b>. Mengacu ke teori Dr. Lois Tonkin, kamu pelan-pelan udah berhasil bikin ruang baru yang lebih luas di luar rasa sedih itu. Lanjutin terus dengan ritme yang paling bikin kamu nyaman ya.</div>", unsafe_allow_html=True)
         
-        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-top:20px; margin-bottom:10px;'>🎯 Saran Rekomendasi Tindakan</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-top:20px; margin-bottom:10px;'>🎯 Langkah Kecil yang Bisa Dicoba</p>", unsafe_allow_html=True)
         
-        # SARAN: Checklist aksi berbasis sains taktis
         if "Fokus" in stat_p: 
-            st.checkbox("🌬️ Lakukan **Box Breathing** (Tarik napas 4 detik, tahan 4 detik, buang 4 detik) selama 2 menit guna meredam over-aktivasi amigdala.")
-            st.checkbox("💧 Penuhi kebutuhan hidrasi dengan meminum satu gelas air putih penuh secara sadar (*mindful drinking*).")
-            st.checkbox("🛡️ Berikan afirmasi tertulis pada diri sendiri bahwa Anda diizinkan untuk tidak produktif hari ini.")
+            st.checkbox("🌬️ Latihan **Box Breathing** yuk: Tarik napas 4 detik, tahan 4 detik, buang perlahan 4 detik. Lakuin 2 menit aja buat nenangin deg-degan.")
+            st.checkbox("💧 Ambil segelas air putih sekarang dan minum sampai habis. Bantu tubuhmu tetep seger.")
+            st.checkbox("🛡️ Nggak apa-apa banget kalau hari ini kamu ngerasa kurang produktif. Kasih izin buat dirimu istirahat tanpa merasa bersalah.")
         elif "Adaptasi" in stat_p: 
-            st.checkbox("☀️ Berdiri di ruang terbuka/bawah sinar matahari pagi selama 10 menit untuk menstimulasi produksi hormon serotonin.")
-            st.checkbox("🎯 Selesaikan satu (1) tugas fisik mikro yang sangat mudah (misal: merapikan posisi bantal tidur).")
-            st.checkbox("✍️ Tuangkan satu kata atau emosi yang paling membebanimu saat ini ke dalam Ruang Cerita di bawah.")
+            st.checkbox("☀️ Coba berdiri di teras atau dekat jendela pas pagi, kena sinar matahari 10 menit aja biar lebih *moody* positif.")
+            st.checkbox("🎯 Coba beresin satu hal super gampang hari ini (misalnya, cuma ngerapiin bantal atau meja).")
+            st.checkbox("✍️ Kalau ada rasa yang ganjel, tumpahin aja sedikit di 'Ruang Tumpah Rasa' di bawah.")
         elif "Seimbang" in stat_p: 
-            st.checkbox("🧩 Gunakan teknik **Sensory Grounding 5-4-3-2-1** apabila memori masa lalu secara mendadak membajak kesadaranmu.")
-            st.checkbox("🚫 Lakukan detoks informasi digital (hindari media sosial atau pemicu lama) selama sisa hari ini.")
-            st.checkbox("🏃 Berjalan santai di sekitar area tinggal selama 15 menit untuk mengurai akumulasi hormon stres kortisol.")
+            st.checkbox("🧩 Pakai teknik **5-4-3-2-1** kalau tiba-tiba kepikiran masa lalu: Cari 5 benda di sekitar yang bisa dilihat, 4 yang bisa disentuh.")
+            st.checkbox("🚫 Kurang-kurangin *scroll* sosmed yang bisa mancing pikiran lama buat sisa hari ini.")
+            st.checkbox("🏃 Jalan kaki santai 15 menit, entah di komplek atau di kantor, biar otot nggak tegang.")
         else: 
-            st.checkbox("🌱 Bangun satu rutinitas pagi baru berskala kecil yang terbebas dari asosiasi atau memori masa lalu.")
-            st.checkbox("🎨 Luangkan waktu 30 menit terisolasi untuk mengeksplorasi minat, hobi, atau karya baru yang tertunda.")
-            st.checkbox("🤝 Jangkau satu kerabat dekat untuk berkomunikasi mengenai topik eksternal yang netral.")
+            st.checkbox("🌱 Bikin satu kebiasaan pagi yang baru banget, yang nggak ada hubungannya sama memori masa lalu.")
+            st.checkbox("🎨 Kasih waktu 30 menit buat ngulik hobi atau hal seru yang udah lama pengen kamu coba.")
+            st.checkbox("🤝 Coba ngobrol ringan sama temen, bahas hal-hal *random* yang nggak ngebahas masalah personal.")
 
 # --- PEMBATAS VISUAL 3 ---
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 st.image("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&h=250&q=80", use_container_width=True)
-st.markdown("<div class='scroll-hint'>↓ Gunakan ruang katarsis di bawah untuk melepaskan beban kognitif</div>", unsafe_allow_html=True)
+st.markdown("<div class='scroll-hint'>↓ Tumpahin semuanya di bawah, biar kepalamu lebih enteng</div>", unsafe_allow_html=True)
 
 
 # ==========================================
-# BLOK 4: RUANG CERITA
+# BLOK 4: RUANG TUMPAH RASA
 # ==========================================
-st.markdown("<h2>4. Ruang Cerita (Katarsis)</h2>", unsafe_allow_html=True)
-st.write("Duka tidak menuntut struktur kalimat. Tuliskan apa pun yang memenuhi pikiranmu saat ini tanpa sensor.")
-j_text = st.text_area("Tumpahkan di sini...", height=150, label_visibility="collapsed", placeholder="Ketik secara bebas...")
+st.markdown("<h2>4. Ruang Tumpah Rasa</h2>", unsafe_allow_html=True)
+st.write("Nggak perlu mikirin struktur kalimat atau ejaan. Tumpahin aja semua yang lagi menuhin kepala kamu di sini tanpa perlu disensor.")
+j_text = st.text_area("Tumpahkan di sini...", height=150, label_visibility="collapsed", placeholder="Ketik apa aja di sini, keluarin semua...")
 
-if st.button("Selesai Menulis"):
+if st.button("Udah, Lumayan Lega"):
     if j_text: 
-        st.success("Tulisan Anda berhasil diproses secara mandiri. Beban memori kerja pada sistem saraf Anda kini telah dialihkan menuju wilayah otak logis.")
+        st.success("Tumpahan rasamu udah diterima dengan aman. Secara psikologis, beban di kepalamu sekarang pasti sedikit lebih enteng.")
         st.balloons()
 
 # ==========================================
-# FOOTER & COMPLIANCE (INTEGRITAS SAINS)
+# FOOTER & COMPLIANCE 
 # ==========================================
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 st.markdown("---")
-with st.expander("ℹ️ Tentang Rekarasa, Landasan Ilmiah & Bantuan Profesional"):
+with st.expander("ℹ️ Tentang Rekarasa, Info Ilmiah & Bantuan Psikolog"):
     st.markdown("""
     **Tentang Rekarasa**
-    Rekarasa adalah platform analitik mandiri (*self-help*) yang dirancang khusus untuk memetakan pertumbuhan kapasitas hidup individu secara terukur. Platform ini **bukan pengganti** dari penanganan medis, konseling klinis, evaluasi psikiatris, maupun psikoterapi profesional.
+    Rekarasa adalah *tools* mandiri buat bantu kamu mantau proses perluasan kapasitas hidup. Penting diingat, aplikasi ini **bukan pengganti** sesi ngobrol langsung sama psikolog atau psikiater profesional ya.
 
-    **🚨 Kapan Harus Menjangkau Bantuan Ahli Profesional?**
-    Protokol pemulihan mandiri memiliki batasan klinis yang ketat. Anda sangat diimbau untuk segera menjangkau psikolog klinis atau psikiater apabila mendeteksi tanda-tanda krisis berikut:
-    * **Disfungsi Aktivitas Harian:** Mengalami kelumpuhan fungsi sosial, penurunan nafsu makan drastis, insomnia parah, atau absen bekerja selama lebih dari 14 hari berturut-turut.
-    * **Ideasi Destruktif:** Timbulnya dorongan, rencana, atau pikiran aktif untuk menyakiti diri sendiri maupun mengakhiri kehidupan.
-    * **Koping Maladaptif:** Menggunakan zat adiktif, obat-obatan penenang tanpa resep, atau alkohol sebagai benteng pelarian emosi.
+    **🚨 Kapan Harus Cari Bantuan Profesional?**
+    Pemulihan mandiri itu ada batasnya. Sangat disarankan buat langsung cari bantuan ahli kalau kamu ngerasa:
+    * **Kegiatan Sehari-hari Berantakan:** Kesulitan banget buat tidur, makan, atau kerja selama lebih dari 2 minggu berturut-turut.
+    * **Pikiran Bahaya:** Muncul keinginan atau rencana buat nyakitin diri sendiri.
+    * **Pelarian Ekstrem:** Mulai bergantung banget sama alkohol atau hal adiktif lainnya buat ngerasa baikan.
     
-    *(Jika Anda berada dalam situasi krisis emosional akut, silakan hubungi pusat layanan darurat medis nasional atau Layanan Kesehatan Jiwa Kemenkes RI melalui saluran **119 ekstensi 8**).*
+    *(Kalau kamu ngerasa udah di titik krisis, jangan ragu buat hubungi layanan darurat kesehatan mental terdekat atau telepon ke **119 ekstensi 8** - Layanan Sejiwa Kemenkes RI).*
 
     ---
 
