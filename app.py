@@ -126,7 +126,8 @@ st.markdown("<br><hr><div class='spacer-top'></div>", unsafe_allow_html=True)
 st.markdown("<h2>1. Cek Ruang Kapasitas (WHO-5 Index)</h2>", unsafe_allow_html=True)
 st.write("Biar sistem bisa ngasih saran yang paling akurat, kita pakai standar kuesioner kesehatan mental global. Nggak ada jawaban yang salah kok, pilih aja yang paling kerasa sama kamu **beberapa hari terakhir ini** ya.")
 
-opsi_skala = ["(1) Hampir nggak pernah", "(2) Jarang", "(3) Kadang-kadang", "(4) Sering", "(5) Hampir selalu"]
+# UPDATE: Hapus penomoran agar terkesan lebih santai
+opsi_skala = ["Hampir nggak pernah", "Jarang", "Kadang-kadang", "Sering", "Hampir selalu"]
 
 with st.form("asesmen_who5"):
     st.markdown("<div class='question-text'>1. Aku ngerasa ceria dan mood lagi lumayan bagus.</div>", unsafe_allow_html=True)
@@ -148,11 +149,16 @@ with st.form("asesmen_who5"):
 
 if submit_asesmen:
     if all([q1, q2, q3, q4, q5]):
-        # Ekstrak angka dengan aman menggunakan split
-        def ambil_skor(teks):
-            return int(teks.split(')')[0].replace('(', ''))
-            
-        skor_total = ambil_skor(q1) + ambil_skor(q2) + ambil_skor(q3) + ambil_skor(q4) + ambil_skor(q5)
+        # UPDATE: Mapping nilai karena string angkanya sudah dihapus
+        skor_dict = {
+            "Hampir nggak pernah": 1, 
+            "Jarang": 2, 
+            "Kadang-kadang": 3, 
+            "Sering": 4, 
+            "Hampir selalu": 5
+        }
+        
+        skor_total = skor_dict[q1] + skor_dict[q2] + skor_dict[q3] + skor_dict[q4] + skor_dict[q5]
         
         # Mapping Skor WHO-5 (Min 5, Max 25) ke 5 Fase Rekarasa
         if skor_total <= 8: fase_baru = "Fokus Bertahan Diri"
@@ -190,7 +196,6 @@ with col_input:
             skor_final = {"😢 Terhimpit": 1, "🙁 Terbatas": 2, "😐 Menengah": 3, "🙂 Meluas": 4, "😄 Bertumbuh": 5}[skala_likert]
             new_data = pd.DataFrame({"Tanggal": [pd.to_datetime(tgl)], "Skor Pertumbuhan": [skor_final], "Catatan": [catatan_singkat]})
             
-            # BUG FIX: Menggunakan keep='last' agar jika user salah input di hari yang sama, data bisa ditimpa.
             st.session_state.database_pertumbuhan = pd.concat([st.session_state.database_pertumbuhan, new_data]).drop_duplicates(subset=['Tanggal'], keep='last').sort_values('Tanggal')
             
             st.success("Jejaknya udah kesimpan aman!")
@@ -202,7 +207,6 @@ with col_graph:
         df_plot = st.session_state.database_pertumbuhan.copy()
         fig = px.line(df_plot, x="Tanggal", y="Skor Pertumbuhan", text="Catatan", markers=True, height=340)
         
-        # BUG FIX: Mencegah grafik error/zooming aneh kalau data baru 1 hari
         if len(df_plot) == 1:
             s_date = df_plot['Tanggal'].iloc[0]
             fig.update_xaxes(range=[s_date - pd.Timedelta(days=1), s_date + pd.Timedelta(days=1)])
@@ -258,7 +262,8 @@ else:
             st.checkbox("🎯 Beresin satu hal super gampang hari ini (misal: cuma ngerapiin meja kerja atau bersihin layar tablet).")
             st.checkbox("✍️ Kalau masih ada yang ganjel, keluarin aja semuanya di 'Ruang Tumpah Rasa' di bawah.")
         elif "Seimbang" in stat_p: 
-            st.checkbox("🧩 Pakai teknik **5-4-3-2-1** kalau tiba-tiba kepikiran masa lalu: Cari 5 benda di sekitar yang bisa dilihat, 4 yang bisa disentuh.")
+            # UPDATE: Penyempurnaan Teknik 5-4-3-2-1
+            st.checkbox("🧩 Pakai teknik **5-4-3-2-1** buat narik kesadaran: Sebutkan 5 hal yang bisa dilihat, 4 yang disentuh, 3 yang didengar, 2 yang dicium baunya, dan 1 hal baik tentangmu.")
             st.checkbox("🚫 Kurangin kepo atau *scroll* sosmed yang bisa mancing pikiran lama buat sisa hari ini.")
             st.checkbox("🏃 Jalan kaki santai 15 menit, entah di komplek atau keliling kantor, biar stres di otot berkurang.")
         else: 
@@ -306,10 +311,11 @@ with st.expander("ℹ️ Tentang Rekarasa, Info Ilmiah & Bantuan Psikolog"):
 
     **Berdasarkan Literatur Riset & Teori Faktual:**
     * **WHO-5 Well-Being Index (1998):** Instrumen validasi global dari Organisasi Kesehatan Dunia yang dirancang khusus untuk mengukur kesejahteraan subjektif dan kualitas hidup secara positif.
-    * **Model *Growing Around Grief* (Dr. Lois Tonkin, 1996):** Teori inti yang memvalidasi bahwa pemulihan sejati terjadi dengan memperluas dimensi hidup mengelilingi duka, bukan memaksanya hilang.
-    * **Konsep *Self-Compassion* (Dr. Kristin Neff):** Dasar penyusunan laporan analitik yang tidak menghakimi (*non-judgmental*), terbukti secara klinis memotong rantai kritik diri (*self-criticism*).
-    * **Paradigma *Expressive Writing* (Dr. James W. Pennebaker, 1997):** Landasan neuropsikologis 'Ruang Tumpah Rasa' yang terbukti mampu memindahkan muatan stres dari amigdala menuju korteks prefrontal.
-    * **Regulasi Sistem Saraf (*Box Breathing*):** Latihan pernapasan taktis untuk menurunkan lonjakan kortisol (Riset Dr. Richard Brown & Dr. Patricia Gerbarg).
-    * **Protokol *Sensory Grounding* 5-4-3-2-1:** Teknik kesadaran indrawi dari Cognitive Behavioral Therapy (CBT) untuk mengembalikan kendali logika saat kepanikan menyerang.
+    * **Model *Growing Around Grief* (Dr. Lois Tonkin, 1996):** Arsitektur utama aplikasi. Memvalidasi bahwa pemulihan ditandai dengan memperluas dimensi hidup, bukan menyusutkan duka.
+    * **Aktivasi Perilaku / *Behavioral Activation* (Peter Lewinsohn, 1974):** Teori inti CBT yang mendasari dasbor Jejak Langkah. Memecah keputusasaan dengan cara merekam dan mendorong keterlibatan dalam aktivitas yang bermakna.
+    * **Konsep *Self-Compassion* (Dr. Kristin Neff):** Dasar penyusunan laporan analitik yang tidak menghakimi, terbukti klinis memotong rantai kritik diri (*self-criticism*).
+    * **Paradigma *Expressive Writing* (Dr. James W. Pennebaker, 1997):** Landasan 'Ruang Tumpah Rasa' yang terbukti memindahkan stres dari amigdala menuju korteks prefrontal.
+    * **Regulasi Sistem Saraf (*Box Breathing*):** Latihan pernapasan untuk menurunkan lonjakan kortisol (Riset Dr. Richard Brown & Dr. Patricia Gerbarg).
+    * **Protokol *Sensory Grounding* 5-4-3-2-1:** Teknik kesadaran indrawi CBT (Betty Erickson) untuk mengembalikan kendali logika saat kepanikan menyerang.
     """)
     st.caption("© 2026 Rekarasa. Didesain dengan mengedepankan keamanan privasi, kepatuhan etika, dan integritas data ilmiah.")
