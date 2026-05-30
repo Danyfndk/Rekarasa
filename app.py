@@ -5,95 +5,116 @@ import datetime
 from supabase import create_client, Client
 
 # ==========================================
-# 1. KONFIGURASI HALAMAN & ADVANCED CSS
+# 1. KONFIGURASI HALAMAN & RESPONSIVE CSS
 # ==========================================
 st.set_page_config(
     page_title="Rekarasa | Teman Tumbuhmu", 
     page_icon="🌱", 
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    /* Global Styles */
+    html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
     .stApp { background-color: #F8FAFC; } 
+    
+    /* Hide Streamlit Branding for SaaS look */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
 
-    /* Metric Card Customization */
-    [data-testid="stMetricValue"] > div {
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        line-height: 1.2 !important;
-        font-size: 1.5rem !important;
-        font-weight: 700 !important;
-        color: #0F172A !important;
-        letter-spacing: -0.5px;
+    /* -----------------------------------
+       SaaS COLOR PALETTE & TYPOGRAPHY
+       ----------------------------------- */
+    .hero-title { color: #0F172A; font-weight: 800; font-size: 3.5rem; letter-spacing: -1.5px; margin-bottom: 0.2rem; line-height: 1.1;}
+    .hero-subtitle { color: #64748B; line-height: 1.6; font-size: 1.15rem; max-width: 90%; font-weight: 400;}
+    h2 { color: #0F172A; font-weight: 700 !important; font-size: 1.8rem; padding-bottom: 15px; margin-bottom: 25px; border-bottom: 2px solid #F1F5F9;}
+    
+    /* -----------------------------------
+       MODERN CARDS & CONTAINERS
+       ----------------------------------- */
+    div[role="radiogroup"] { 
+        background: #FFFFFF; 
+        padding: 20px 25px; 
+        border-radius: 16px; 
+        border: 1px solid #E2E8F0; 
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        transition: all 0.2s ease;
     }
-    [data-testid="stMetricLabel"] > div { 
-        color: #64748B !important; 
-        font-size: 0.8rem !important; 
-        font-weight: 600; 
-        text-transform: uppercase; 
-        letter-spacing: 1px;
-        margin-bottom: 5px;
-    }
-    [data-testid="stMetric"] {
-        background-color: #ffffff;
+    div[role="radiogroup"]:hover { border-color: #0D9488; box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.08); }
+    .question-text { font-weight: 600; color: #1E293B; font-size: 1.05rem; margin-bottom: 10px; }
+    
+    .alias-box { 
+        background: #FFFFFF; 
+        padding: 40px; 
+        border-radius: 24px; 
         border: 1px solid #E2E8F0;
-        padding: 1.2rem !important;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        border-top: 4px solid #10B981;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        text-align: center; 
+        max-width: 500px; 
+        margin: 10vh auto; 
     }
-
-    /* On-Screen Report Box Styles */
+    .alias-box h3 { color: #0F172A; font-weight: 800; font-size: 1.8rem; margin-bottom: 10px; }
+    
+    /* Insight Boxes */
     .insight-box {
-        background-color: #F0FDF4;
-        border-left: 4px solid #16A34A;
-        padding: 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        color: #166534;
-        font-size: 1.05rem;
-        line-height: 1.6;
+        background-color: #F0FDF4; border-left: 5px solid #0D9488; padding: 1.8rem;
+        border-radius: 12px; margin-bottom: 1.5rem; color: #115E59; font-size: 1.05rem; line-height: 1.6;
     }
-    
     .insight-box-warning {
-        background-color: #FFFBEB;
-        border-left: 4px solid #F59E0B;
-        padding: 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        color: #92400E;
-        font-size: 1.05rem;
-        line-height: 1.6;
+        background-color: #FFFBEB; border-left: 5px solid #D97706; padding: 1.8rem;
+        border-radius: 12px; margin-bottom: 1.5rem; color: #92400E; font-size: 1.05rem; line-height: 1.6;
     }
 
-    /* Tipografi Utama */
-    .hero-title { color: #0F172A; font-weight: 800; font-size: 3rem; letter-spacing: -1.5px; margin-bottom: 0.5rem; }
-    .hero-subtitle { color: #64748B; line-height: 1.6; font-size: 1.1rem; max-width: 90%; }
-    h2 { color: #0F172A; font-weight: 700 !important; font-size: 1.6rem; border-bottom: 1.5px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 25px;}
-    
-    /* Buttons Customization */
+    /* -----------------------------------
+       BUTTONS & METRICS
+       ----------------------------------- */
     .stButton>button { 
-        background-color: #0F172A; 
-        color: white; 
-        border-radius: 10px; 
-        padding: 0.6rem 2rem; 
-        border: none; 
-        font-weight: 600; 
-        transition: all 0.3s ease;
+        background-color: #0F172A; color: white; border-radius: 12px; 
+        padding: 0.6rem 2rem; border: none; font-weight: 600; font-size: 1rem;
+        transition: all 0.3s ease; width: auto;
     }
-    .stButton>button:hover { background-color: #10B981; color: white; }
+    .stButton>button:hover { background-color: #0D9488; color: white; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.3); }
     
-    /* Input & Forms */
-    div[role="radiogroup"] { background: #ffffff; padding: 15px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 15px;}
-    .question-text { font-weight: 600; color: #0F172A; font-size: 1rem; margin-bottom: 5px; }
-    .alias-box { background: #ffffff; padding: 25px; border-radius: 16px; border: 2px dashed #CBD5E1; text-align: center; max-width: 600px; margin: 40px auto; }
-    
-    .scroll-hint { text-align: center; color: #94A3B8; font-size: 0.9rem; font-weight: 600; margin-top: 15px; margin-bottom: 60px; text-transform: uppercase; letter-spacing: 1px; }
-    .spacer-top { margin-top: 2rem; }
+    [data-testid="stMetric"] {
+        background-color: #FFFFFF; border: 1px solid #E2E8F0; padding: 1.5rem !important;
+        border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        border-top: 5px solid #0D9488;
+    }
+    [data-testid="stMetricValue"] > div { font-size: 1.6rem !important; font-weight: 800 !important; color: #0F172A !important; line-height: 1.2 !important; white-space: normal !important; word-wrap: break-word !important;}
+    [data-testid="stMetricLabel"] > div { color: #64748B !important; font-size: 0.8rem !important; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 5px;}
+
+    /* Utilities */
+    .scroll-hint { text-align: center; color: #94A3B8; font-size: 0.85rem; font-weight: 700; margin-top: 20px; margin-bottom: 50px; text-transform: uppercase; letter-spacing: 1.5px; }
+    .spacer-top { margin-top: 3rem; }
+
+    /* -----------------------------------
+       MOBILE RESPONSIVENESS (SMARTPHONES)
+       ----------------------------------- */
+    @media (max-width: 768px) {
+        .hero-title { font-size: 2.2rem; }
+        .hero-subtitle { font-size: 1rem; max-width: 100%; }
+        h2 { font-size: 1.4rem; margin-bottom: 15px; }
+        .alias-box { padding: 25px; margin: 5vh 15px; }
+        .alias-box h3 { font-size: 1.4rem; }
+        
+        /* Make buttons full width on mobile for easy tapping */
+        .stButton>button { width: 100%; margin-top: 10px; }
+        
+        /* Adjust paddings for mobile */
+        div[role="radiogroup"] { padding: 15px; }
+        .insight-box, .insight-box-warning { padding: 1.2rem; font-size: 0.95rem; }
+        .spacer-top { margin-top: 1.5rem; }
+        
+        /* Stack metric cards vertically on small screens */
+        [data-testid="stMetric"] { padding: 1.2rem !important; margin-bottom: 10px; }
+        [data-testid="stMetricValue"] > div { font-size: 1.4rem !important; }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -112,39 +133,41 @@ except Exception as e:
     st.error("Gagal terhubung ke database. Pastikan pengaturan Secrets di Streamlit Cloud sudah benar.")
     st.stop()
 
-# Fungsi Cerdas untuk Upsert Data (Menimpa tanpa menghapus kolom lain di hari yang sama)
 def upsert_jurnal(nama_alias, tgl_input, **kwargs):
     tgl_str = str(tgl_input)
-    # 1. Tarik data lama kalau ada
     response = supabase.table("rekarasa_jurnal").select("*").eq("nama_pengguna", nama_alias).eq("tanggal", tgl_str).execute()
     data_baru = {"nama_pengguna": nama_alias, "tanggal": tgl_str}
-    
     if response.data:
-        data_baru.update(response.data[0]) # Gabungkan dengan data lama
-        
-    data_baru.update(kwargs) # Timpa dengan input baru
-    
-    # 2. Kirim kembali ke Supabase
+        data_baru.update(response.data[0]) 
+    data_baru.update(kwargs) 
     supabase.table("rekarasa_jurnal").upsert(data_baru).execute()
 
 # ==========================================
-# 3. SISTEM LOGIN ALIAS (MULTI-USER GATEWAY)
+# 3. SAAS LOGIN GATEWAY
 # ==========================================
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 
-col_logo, col_login = st.columns([1, 2])
-with col_logo:
-    st.markdown('<div class="hero-title" style="font-size:2.2rem;">Rekarasa 🌱</div>', unsafe_allow_html=True)
+if 'user_alias' not in st.session_state:
+    st.session_state['user_alias'] = ""
 
-with col_login:
-    nama_pengguna = st.text_input("🔑 Masukkan Nama/Alias Rahasia kamu buat buka jurnal:", placeholder="Contoh: Dany_88", label_visibility="collapsed")
+col_empty1, col_login_box, col_empty2 = st.columns([1, 2, 1])
+with col_login_box:
+    if not st.session_state['user_alias']:
+        st.markdown("<div class='alias-box'><h3>Rekarasa 🌱</h3><p style='color:#64748B; margin-bottom:20px;'>Ruang personal untuk memetakan langkahmu.</p>", unsafe_allow_html=True)
+        input_nama = st.text_input("Alias", placeholder="Ketik namamu di sini (misal: Dany_88)", label_visibility="collapsed")
+        if st.button("Buka Jurnalku"):
+            if input_nama:
+                st.session_state['user_alias'] = input_nama
+                st.rerun()
+            else:
+                st.warning("Isi namamu dulu ya.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
 
-if not nama_pengguna:
-    st.markdown("<div class='alias-box'><h3>Halo, selamat datang.</h3><p style='color:#64748B;'>Ketik nama alias yang unik di kotak atas buat buka ruang personalmu ya. Selama aliasnya sama, data kamu bakal terus tersimpan aman.</p></div>", unsafe_allow_html=True)
-    st.stop() # Hentikan *render* halaman sampai alias diisi
+nama_pengguna = st.session_state['user_alias']
 
-# --- TARIK DATA PENGGUNA DARI CLOUD ---
-@st.cache_data(ttl=2) # Cache 2 detik agar UX terasa sangat cepat namun tetap real-time
+# --- TARIK DATA ---
+@st.cache_data(ttl=2) 
 def get_user_data(nama_alias):
     resp = supabase.table("rekarasa_jurnal").select("*").eq("nama_pengguna", nama_alias).execute()
     if resp.data:
@@ -156,29 +179,31 @@ def get_user_data(nama_alias):
 df_jurnal = get_user_data(nama_pengguna)
 hari_ini = datetime.date.today()
 
-# Set status fase saat ini berdasarkan data di cloud
 fase_saat_ini = "Baru Mulai Melangkah"
 if not df_jurnal.empty:
     data_hari_ini = df_jurnal[df_jurnal['tanggal'] == hari_ini]
     if not data_hari_ini.empty and pd.notna(data_hari_ini.iloc[0]['fase_hidup']):
         fase_saat_ini = data_hari_ini.iloc[0]['fase_hidup']
     else:
-        # Cari riwayat fase terakhir
         riwayat_fase = df_jurnal.dropna(subset=['fase_hidup'])
         if not riwayat_fase.empty:
             fase_saat_ini = riwayat_fase.iloc[-1]['fase_hidup']
 
 # ==========================================
-# 4. HEADER PLATFORM
+# 4. DASHBOARD HEADER
 # ==========================================
 st.markdown("---")
 col_title, col_metric = st.columns([2.5, 1.2])
 
 with col_title:
-    st.markdown(f'<div class="hero-subtitle">Ruang personal milik: <b>{nama_pengguna}</b><br>Berdasarkan model <b>Growing Around Grief</b>. Nggak usah maksain rasa sedihnya cepet hilang. Kita cuma perlu pelan-pelan ngeluasin ruang hidupmu buat nampung itu semua.</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="hero-title">Halo, {nama_pengguna}.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-subtitle">Berdasarkan model <b>Growing Around Grief</b>. Kita tidak mengecilkan duka, kita memperluas ruang hidup untuk menampungnya.</div>', unsafe_allow_html=True)
 
 with col_metric:
     st.metric(label="Fase Hidupmu Saat Ini", value=fase_saat_ini)
+    if st.button("Keluar (Ganti Akun)", key="logout_btn"):
+        st.session_state['user_alias'] = ""
+        st.rerun()
 
 st.markdown("<br><hr><div class='spacer-top'></div>", unsafe_allow_html=True)
 
@@ -187,7 +212,7 @@ st.markdown("<br><hr><div class='spacer-top'></div>", unsafe_allow_html=True)
 # BLOK 1: ASESMEN (WHO-5 WELL-BEING INDEX)
 # ==========================================
 st.markdown("<h2>1. Cek Ruang Kapasitas (WHO-5 Index)</h2>", unsafe_allow_html=True)
-st.write("Biar sistem bisa ngasih saran yang paling akurat, kita pakai standar kuesioner kesehatan mental global. Nggak ada jawaban yang salah kok, pilih aja yang paling kerasa sama kamu **beberapa hari terakhir ini** ya.")
+st.write("Skrining singkat standar kesehatan mental global. Pilih yang paling sesuai dengan kondisimu **beberapa hari terakhir**.")
 
 opsi_skala = ["Hampir nggak pernah", "Jarang", "Kadang-kadang", "Sering", "Hampir selalu"]
 
@@ -220,47 +245,53 @@ if submit_asesmen:
         elif skor_total <= 20: fase_baru = "Ekspansi Kehidupan"
         else: fase_baru = "Kapasitas Hidup Luas"
         
-        # Kirim ke Cloud DB
         upsert_jurnal(nama_pengguna, hari_ini, skor_who5=skor_total, fase_hidup=fase_baru)
+        get_user_data.clear() 
         
-        get_user_data.clear() # Bersihkan cache
-        st.success(f"Tersimpan di Cloud! Berdasarkan analisis, fase kamu sekarang ada di: **{fase_baru}**.")
-        st.rerun() # Refresh halaman secara instan
+        st.session_state['notif_who5'] = fase_baru
+        st.rerun() 
     else:
-        st.warning("Eits, sepertinya ada pertanyaan yang belum keisi. Dilengkapin dulu yuk!")
+        st.warning("Mohon lengkapi semua pertanyaan terlebih dahulu.")
+
+if 'notif_who5' in st.session_state:
+    st.success(f"Tersimpan di Cloud! Berdasarkan analisis, fase kamu sekarang ada di: **{st.session_state['notif_who5']}**.")
+    del st.session_state['notif_who5']
 
 # --- PEMBATAS VISUAL 1 ---
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 st.image("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&h=250&q=80", use_container_width=True)
-st.markdown("<div class='scroll-hint'>↓ Cek seberapa jauh kamu udah jalan di bawah ini</div>", unsafe_allow_html=True)
+st.markdown("<div class='scroll-hint'>↓ Cek jejak langkahmu di bawah ini</div>", unsafe_allow_html=True)
 
 
 # ==========================================
 # BLOK 2: JEJAK LANGKAH (BEHAVIORAL ACTIVATION)
 # ==========================================
 st.markdown("<h2>2. Jejak Langkahmu</h2>", unsafe_allow_html=True)
-st.write("Grafik ini bukan buat ngukur kesedihan, tapi ngeliat seberapa jauh **Ruang Hidupmu** udah bertumbuh dari hari ke hari.")
+st.write("Pantau seberapa jauh **Ruang Hidupmu** udah bertumbuh dari hari ke hari.")
 
 col_input, col_graph = st.columns([1, 2], gap="large")
 with col_input:
-    tgl_input = st.date_input("Pilih Tanggal (Bisa ubah tanggal buat cek mundur)", hari_ini)
+    tgl_input = st.date_input("Pilih Tanggal", hari_ini)
     skala_likert = st.radio("Seberapa luas ruang hidupmu hari ini?", ["😢 Terhimpit", "🙁 Terbatas", "😐 Menengah", "🙂 Meluas", "😄 Bertumbuh"], horizontal=True, index=None)
     
-    catatan_singkat = st.pills("Ada aktivitas baru yang kamu lakuin?", [
+    catatan_singkat = st.pills("Aktivitas baru yang kamu lakuin?", [
         "Cuma Bertahan", "Rawat Diri", "Ngulik Hobi", "Ketemu Teman", "Fokus Kerja", "Mulai Berdamai"
     ], default="Cuma Bertahan")
     
     if st.button("Simpan Jejak Hari Ini"):
         if skala_likert:
             skor_final = {"😢 Terhimpit": 1, "🙁 Terbatas": 2, "😐 Menengah": 3, "🙂 Meluas": 4, "😄 Bertumbuh": 5}[skala_likert]
-            
             upsert_jurnal(nama_pengguna, tgl_input, skor_pertumbuhan=skor_final, catatan=catatan_singkat)
+            get_user_data.clear() 
             
-            get_user_data.clear() # Bersihkan cache
-            st.success("Jejaknya udah kesimpan aman di Cloud!")
+            st.session_state['notif_jejak'] = True
             st.rerun()
         else:
             st.warning("Pilih skala pertumbuhannya dulu ya.")
+
+    if 'notif_jejak' in st.session_state:
+        st.success("Jejaknya udah kesimpan aman di Cloud!")
+        del st.session_state['notif_jejak']
 
 with col_graph:
     df_plot = df_jurnal.dropna(subset=['skor_pertumbuhan']).copy()
@@ -270,7 +301,7 @@ with col_graph:
             s_date = df_plot['tanggal'].iloc[0]
             fig.update_xaxes(range=[s_date - pd.Timedelta(days=1), s_date + pd.Timedelta(days=1)])
             
-        fig.update_traces(line_color="#E2E8F0", line_width=3, line_shape='spline', marker=dict(size=14, color="#10B981"), textposition="top center", textfont=dict(color="#475569", size=11, family='Inter'))
+        fig.update_traces(line_color="#E2E8F0", line_width=4, line_shape='spline', marker=dict(size=14, color="#0D9488"), textposition="top center", textfont=dict(color="#475569", size=11, family='Plus Jakarta Sans'))
         fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", yaxis=dict(range=[0.5, 5.5], tickvals=[1, 2, 3, 4, 5], ticktext=["Terhimpit", "Terbatas", "Menengah", "Meluas", "Bertumbuh"]), margin=dict(t=10, b=0, l=0, r=0))
         st.plotly_chart(fig, use_container_width=True)
     else:
@@ -279,7 +310,7 @@ with col_graph:
 # --- PEMBATAS VISUAL 2 ---
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 st.image("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=1200&h=250&q=80", use_container_width=True)
-st.markdown("<div class='scroll-hint'>↓ Tarik napas sebentar, yuk intip kesimpulan buat kamu hari ini</div>", unsafe_allow_html=True)
+st.markdown("<div class='scroll-hint'>↓ Intip kesimpulan buat kamu hari ini</div>", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -293,7 +324,7 @@ else:
     col_summary_data, col_summary_insight = st.columns([1.2, 2.3], gap="large")
     
     with col_summary_data:
-        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:15px;'>📋 Rekap Perjalananmu</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:12px; font-weight:800; color:#94A3B8; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px;'>📋 Rekap Perjalananmu</p>", unsafe_allow_html=True)
         total_hari = len(df_plot)
         avg_score = df_plot['skor_pertumbuhan'].mean()
         
@@ -302,36 +333,36 @@ else:
         st.metric(label="Indeks Rata-rata Kapasitas", value=f"{avg_score:.1f} / 5.0")
         
     with col_summary_insight:
-        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:15px;'>💡 Catatan Buat Kamu</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:12px; font-weight:800; color:#94A3B8; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px;'>💡 Catatan Buat Kamu</p>", unsafe_allow_html=True)
         
         if avg_score < 3.0:
             st.markdown(f"<div class='insight-box-warning'><b>Hasil Analisis:</b> Fase kamu secara rata-rata ada di <b>{fase_saat_ini}</b>. Wajar banget kalau lagi ngerasa mentok atau berat. Mengacu ke konsep <i>Self-Compassion</i> Dr. Kristin Neff, ini sama sekali bukan kegagalan. Tubuh dan pikiranmu cuma lagi ngasih alarm buat minta istirahat ekstra. Nggak perlu nyalahin diri sendiri, <i>take your time</i> aja.</div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='insight-box'><b>Hasil Analisis:</b> Keren banget, kapasitas hidupmu lagi lumayan stabil dan ada di <b>{fase_saat_ini}</b>. Mengacu ke teori Dr. Lois Tonkin, kamu udah ngebuktiin kalau kamu pelan-pelan bisa ngebangun sirkuit memori baru yang lebih luas dari rasa sedih itu. Lanjutin terus dengan ritme yang paling bikin kamu nyaman ya.</div>", unsafe_allow_html=True)
         
-        st.markdown("<p style='font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-top:20px; margin-bottom:10px;'>🎯 Langkah Kecil yang Bisa Dicoba Hari Ini</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:12px; font-weight:800; color:#94A3B8; text-transform:uppercase; letter-spacing:1px; margin-top:25px; margin-bottom:10px;'>🎯 Langkah Kecil Hari Ini</p>", unsafe_allow_html=True)
         
         if "Fokus" in fase_saat_ini: 
-            st.checkbox("🌬️ Latihan **Box Breathing** yuk: Tarik napas 4 detik, tahan 4 detik, buang perlahan 4 detik. Lakuin 2 menit aja buat nenangin deg-degan.")
-            st.checkbox("💧 Ambil segelas air putih sekarang dan minum pelan-pelan sampai habis. Bantu tubuhmu tetep seger.")
-            st.checkbox("🛡️ Nggak apa-apa banget kalau hari ini ngerasa nggak produktif. Kasih izin buat dirimu istirahat, kamu udah berusaha keras kok.")
+            st.checkbox("🌬️ Latihan **Box Breathing** yuk: Tarik napas 4s, tahan 4s, buang perlahan 4s. Lakuin 2 menit aja buat nenangin deg-degan.")
+            st.checkbox("💧 Ambil segelas air putih sekarang dan minum pelan-pelan sampai habis.")
+            st.checkbox("🛡️ Nggak apa-apa banget kalau hari ini ngerasa nggak produktif. Kasih izin buat dirimu istirahat.")
         elif "Adaptasi" in fase_saat_ini: 
-            st.checkbox("☀️ Coba berdiri di teras atau dekat jendela pas pagi, kena sinar matahari 10 menit aja biar hormon bahagia (*serotonin*) naik.")
-            st.checkbox("🎯 Beresin satu hal super gampang hari ini (misal: cuma ngerapiin meja kerja atau bersihin layar tablet).")
-            st.checkbox("✍️ Kalau masih ada yang ganjel, keluarin aja semuanya di 'Ruang Tumpah Rasa' di bawah.")
+            st.checkbox("☀️ Berdiri di teras atau dekat jendela pas pagi, kena sinar matahari 10 menit aja biar hormon bahagia naik.")
+            st.checkbox("🎯 Beresin satu hal super gampang hari ini (misal: cuma ngerapiin meja kerja).")
+            st.checkbox("✍️ Keluarin emosimu di 'Ruang Tumpah Rasa' di bawah.")
         elif "Seimbang" in fase_saat_ini: 
-            st.checkbox("🧩 Pakai teknik **5-4-3-2-1** buat narik kesadaran: Sebutkan 5 hal yang bisa dilihat, 4 yang disentuh, 3 yang didengar, 2 yang dicium baunya, dan 1 hal baik tentangmu.")
+            st.checkbox("🧩 Pakai teknik **5-4-3-2-1**: Sebutkan 5 hal yang dilihat, 4 disentuh, 3 didengar, 2 dicium baunya, dan 1 hal baik tentangmu.")
             st.checkbox("🚫 Kurangin kepo atau *scroll* sosmed yang bisa mancing pikiran lama buat sisa hari ini.")
-            st.checkbox("🏃 Jalan kaki santai 15 menit, entah di komplek atau keliling kantor, biar stres di otot berkurang.")
+            st.checkbox("🏃 Jalan kaki santai 15 menit biar stres di otot berkurang.")
         else: 
             st.checkbox("🌱 Bikin satu kebiasaan pagi yang baru banget, yang sama sekali nggak ngingetin kamu sama masa lalu.")
-            st.checkbox("🎨 Kasih waktu 30 menit buat ngulik hobi, *coding* Python, atau hal seru yang udah lama pengen kamu coba.")
-            st.checkbox("🤝 Coba ngobrol ringan sama temen kantor, bahas hal-hal *random* yang nggak ngebahas masalah personal.")
+            st.checkbox("🎨 Kasih waktu 30 menit buat ngulik hobi baru yang seru.")
+            st.checkbox("🤝 Ngobrol ringan sama temen, bahas hal-hal *random*.")
 
 # --- PEMBATAS VISUAL 3 ---
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 st.image("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&h=250&q=80", use_container_width=True)
-st.markdown("<div class='scroll-hint'>↓ Tumpahin semuanya di bawah, biar kepalamu lebih enteng</div>", unsafe_allow_html=True)
+st.markdown("<div class='scroll-hint'>↓ Tumpahin semuanya di bawah</div>", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -347,12 +378,18 @@ with st.form("ruang_tumpah_rasa_form", clear_on_submit=True):
 if submit_cerita:
     if j_text: 
         upsert_jurnal(nama_pengguna, hari_ini, jurnal=j_text)
-        get_user_data.clear() # Bersihkan cache
-        st.success("Tumpahan rasamu udah diterima dan dikunci di Cloud. Secara ilmiah, mindahin uneg-uneg lewat tulisan bikin otak logis kamu kerja lebih enteng.")
-        st.balloons()
+        get_user_data.clear() 
+        
+        st.session_state['notif_jurnal'] = True
+        st.rerun()
+
+if 'notif_jurnal' in st.session_state:
+    st.success("Tumpahan rasamu udah diterima dan dikunci di Cloud. Secara ilmiah, mindahin uneg-uneg lewat tulisan bikin otak logis kamu kerja lebih enteng.")
+    st.balloons()
+    del st.session_state['notif_jurnal']
 
 # ==========================================
-# FOOTER & COMPLIANCE (INFO ILMIAH)
+# FOOTER & COMPLIANCE
 # ==========================================
 st.markdown("<div class='spacer-top'></div>", unsafe_allow_html=True)
 st.markdown("---")
@@ -362,22 +399,19 @@ with st.expander("ℹ️ Tentang Rekarasa, Info Ilmiah & Bantuan Psikolog"):
     Rekarasa adalah *tools* mandiri buat ngebantu kamu mantau proses perluasan kapasitas hidup. Penting diingat, aplikasi ini **bukan pengganti** sesi ngobrol langsung sama psikolog atau psikiater klinis ya.
 
     **🚨 Kapan Waktunya Cari Bantuan Profesional?**
-    Pemulihan mandiri itu ada batasannya. Sangat disarankan buat langsung janjian sama ahli kalau kamu ngerasa:
-    * **Kegiatan Sehari-hari Terbengkalai:** Kesulitan banget buat tidur, makan, atau kerja secara normal selama lebih dari 2 minggu berturut-turut.
-    * **Pikiran Berbahaya:** Mulai muncul keinginan atau ngerencanain hal buat nyakitin diri sendiri.
-    * **Pelarian Ekstrem:** Mulai bergantung banget sama alkohol, obat-obatan tanpa resep, atau zat adiktif lainnya.
+    Sangat disarankan buat langsung janjian sama ahli kalau kamu ngerasa:
+    * **Kegiatan Sehari-hari Terbengkalai:** Kesulitan banget buat tidur, makan, atau kerja secara normal selama lebih dari 2 minggu.
+    * **Pikiran Berbahaya:** Mulai muncul keinginan buat nyakitin diri sendiri.
+    * **Pelarian Ekstrem:** Mulai bergantung sama zat adiktif.
     
-    *(Kalau kamu ngerasa udah di titik yang bener-bener krisis, tolong jangan ragu buat hubungi layanan kesehatan mental terdekat atau telepon ke **119 ekstensi 8** - Layanan Sejiwa Kemenkes RI).*
+    *(Hubungi layanan kesehatan mental terdekat atau telepon ke **119 ekstensi 8** - Layanan Sejiwa Kemenkes RI).*
 
     ---
-
-    **Berdasarkan Literatur Riset & Teori Faktual:**
-    * **WHO-5 Well-Being Index (1998):** Destilasi kuesioner global dari Organisasi Kesehatan Dunia yang dirancang khusus untuk mengukur kesejahteraan subjektif dan kualitas hidup secara positif.
-    * **Model *Growing Around Grief* (Dr. Lois Tonkin, 1996):** Arsitektur utama aplikasi. Memvalidasi bahwa pemulihan ditandai dengan memperluas dimensi hidup mengelilingi duka, bukan menyusutkan duka.
-    * **Aktivasi Perilaku / *Behavioral Activation* (Peter Lewinsohn, 1974):** Teori inti CBT yang mendasari dasbor Jejak Langkah. Memecah keputusasaan dengan cara merekam dan mendorong keterlibatan dalam aktivitas yang bermakna.
-    * **Konsep *Self-Compassion* (Dr. Kristin Neff):** Dasar penyusunan laporan analitik yang tidak menghakimi, terbukti klinis memotong rantai kritik diri (*self-criticism*).
-    * **Paradigma *Expressive Writing* (Dr. James W. Pennebaker, 1997):** Landasan neuropsikologis 'Ruang Tumpah Rasa' yang terbukti mampu memindahkan muatan stres dari amigdala menuju korteks prefrontal.
-    * **Regulasi Sistem Saraf (*Box Breathing*):** Latihan pernapasan taktis untuk menurunkan lonjakan kortisol (Riset Dr. Richard Brown & Dr. Patricia Gerbarg).
-    * **Protokol *Sensory Grounding* 5-4-3-2-1:** Teknik kesadaran indrawi dari Cognitive Behavioral Therapy (CBT) untuk mengembalikan kendali logika saat kepanikan menyerang.
+    **Literatur Riset & Teori Faktual:**
+    * **WHO-5 Well-Being Index (1998):** Kuesioner global dari WHO untuk mengukur kesejahteraan subjektif.
+    * **Model *Growing Around Grief* (Dr. Lois Tonkin, 1996):** Arsitektur utama aplikasi.
+    * **Aktivasi Perilaku (Peter Lewinsohn, 1974):** Teori CBT yang mendasari dasbor Jejak Langkah.
+    * **Konsep *Self-Compassion* (Dr. Kristin Neff):** Dasar analitik tidak menghakimi.
+    * **Paradigma *Expressive Writing* (Dr. James W. Pennebaker, 1997):** Landasan 'Ruang Tumpah Rasa'.
     """)
     st.caption("© 2026 Rekarasa. Didesain dengan mengedepankan keamanan privasi, kepatuhan etika, dan integritas data ilmiah.")
