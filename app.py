@@ -215,7 +215,7 @@ else:
         
         # SARAN: Checklist aksi berbasis sains taktis
         if "Fokus" in stat_p: 
-            st.checkbox("🌬️ Lakukan **Box Breathing** (Tarik napas 4 detik, tahan 4s, buang 4s) selama 2 menit guna meredam over-aktivasi amigdala.")
+            st.checkbox("🌬️ Lakukan **Box Breathing** (Tarik napas 4 detik, tahan 4 detik, buang 4 detik) selama 2 menit guna meredam over-aktivasi amigdala.")
             st.checkbox("💧 Penuhi kebutuhan hidrasi dengan meminum satu gelas air putih penuh secara sadar (*mindful drinking*).")
             st.checkbox("🛡️ Berikan afirmasi tertulis pada diri sendiri bahwa Anda diizinkan untuk tidak produktif hari ini.")
         elif "Adaptasi" in stat_p: 
